@@ -1,103 +1,178 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { useState } from "react"
+import { TimeSeriesChart } from "@/components/time-series-chart"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Activity, Lightbulb, Fan, Thermometer, Droplets } from "lucide-react"
+
+// Mock data generators
+const generateTimeSeriesData = (baseValue: number, variance: number, points = 20) => {
+  const now = Date.now()
+  return Array.from({ length: points }, (_, i) => ({
+    time: new Date(now - (points - i) * 60000).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    value: Number((baseValue + (Math.random() - 0.5) * variance).toFixed(2)),
+  }))
+}
+
+export default function IoTDashboard() {
+  // Control states
+  const [lightOn, setLightOn] = useState(false)
+  const [fanOn, setFanOn] = useState(false)
+  const [tempThreshold, setTempThreshold] = useState("25")
+  const [humidityThreshold, setHumidityThreshold] = useState("60")
+
+  // Mock sensor data
+  const temperatureData = generateTimeSeriesData(23, 4)
+  const humidityData = generateTimeSeriesData(55, 15)
+  const lightLevelData = generateTimeSeriesData(450, 200)
+  const powerConsumptionData = generateTimeSeriesData(120, 40)
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-background p-4 md:p-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-3 border-b border-border pb-6">
+          <Activity className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">IoT Management Dashboard</h1>
+            <p className="text-muted-foreground">Real-time monitoring and device control</p>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+
+        {/* Control Panel */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-foreground">Device Controls</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Manage your IoT devices and set automation thresholds
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {/* Light Control */}
+              <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Lightbulb className={`h-5 w-5 ${lightOn ? "text-chart-3" : "text-muted-foreground"}`} />
+                    <Label htmlFor="light-switch" className="text-sm font-medium text-foreground">
+                      Light
+                    </Label>
+                  </div>
+                  <Switch id="light-switch" checked={lightOn} onCheckedChange={setLightOn} />
+                </div>
+                <p className="text-xs text-muted-foreground">Status: {lightOn ? "ON" : "OFF"}</p>
+              </div>
+
+              {/* Fan Control */}
+              <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Fan className={`h-5 w-5 ${fanOn ? "text-chart-2" : "text-muted-foreground"}`} />
+                    <Label htmlFor="fan-switch" className="text-sm font-medium text-foreground">
+                      Fan
+                    </Label>
+                  </div>
+                  <Switch id="fan-switch" checked={fanOn} onCheckedChange={setFanOn} />
+                </div>
+                <p className="text-xs text-muted-foreground">Status: {fanOn ? "ON" : "OFF"}</p>
+              </div>
+
+              {/* Temperature Threshold */}
+              <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+                <div className="flex items-center gap-2">
+                  <Thermometer className="h-5 w-5 text-chart-4" />
+                  <Label htmlFor="temp-threshold" className="text-sm font-medium text-foreground">
+                    Temp Threshold
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="temp-threshold"
+                    type="number"
+                    value={tempThreshold}
+                    onChange={(e) => setTempThreshold(e.target.value)}
+                    className="h-8 bg-background text-foreground"
+                  />
+                  <span className="text-xs text-muted-foreground">°C</span>
+                </div>
+              </div>
+
+              {/* Humidity Threshold */}
+              <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+                <div className="flex items-center gap-2">
+                  <Droplets className="h-5 w-5 text-chart-2" />
+                  <Label htmlFor="humidity-threshold" className="text-sm font-medium text-foreground">
+                    Humidity Threshold
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="humidity-threshold"
+                    type="number"
+                    value={humidityThreshold}
+                    onChange={(e) => setHumidityThreshold(e.target.value)}
+                    className="h-8 bg-background text-foreground"
+                  />
+                  <span className="text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex gap-3">
+              <Button className="bg-primary text-primary-foreground hover:bg-primary/90">Apply Settings</Button>
+              <Button variant="outline" className="border-border text-foreground hover:bg-muted bg-transparent">
+                Reset to Default
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Charts Grid */}
+        <div className="grid gap-6 md:grid-cols-2">
+          <TimeSeriesChart
+            title="Temperature"
+            description="Real-time temperature monitoring"
+            data={temperatureData}
+            dataKey="value"
+            unit="°C"
+            color="hsl(var(--chart-4))"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+
+          <TimeSeriesChart
+            title="Humidity"
+            description="Ambient humidity levels"
+            data={humidityData}
+            dataKey="value"
+            unit="%"
+            color="hsl(var(--chart-2))"
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
+
+          <TimeSeriesChart
+            title="Light Level"
+            description="Ambient light intensity"
+            data={lightLevelData}
+            dataKey="value"
+            unit=" lux"
+            color="hsl(var(--chart-3))"
           />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+          <TimeSeriesChart
+            title="Power Consumption"
+            description="Real-time power usage"
+            data={powerConsumptionData}
+            dataKey="value"
+            unit="W"
+            color="hsl(var(--chart-1))"
+          />
+        </div>
+      </div>
     </div>
-  );
+  )
 }
