@@ -25,12 +25,31 @@ const transformDataForChart = (data: GlpData[], field: keyof GlpData) => {
 
 export default function IoTDashboard() {
 
-  // Control states
+  // --- Atuadores e Limites de Controle ---
+  // Light
   const [lightOn, setLightOn] = useState(false)
   const [lightLoading, setLightLoading] = useState(false)
+
+  // Fan / Ventilation
   const [fanOn, setFanOn] = useState(false)
+  const [fanLoading, setFanLoading] = useState(false)
+
+  // Irrigation
+  const [irrigationOn, setIrrigationOn] = useState(false)
+  const [irrigationLoading, setIrrigationLoading] = useState(false)
+
+  // --- Limites ---
   const [tempThreshold, setTempThreshold] = useState("25")
+  const [tempLoading, setTempLoading] = useState(false)
+
   const [humidityThreshold, setHumidityThreshold] = useState("60")
+  const [humidityLoading, setHumidityLoading] = useState(false)
+
+  const [soilThreshold, setSoilThreshold] = useState("40")
+  const [soilLoading, setSoilLoading] = useState(false)
+
+  const [lightThreshold, setLightThreshold] = useState("200")
+  const [lightThresholdLoading, setLightThresholdLoading] = useState(false)
 
   const [sensorData, setSensorData] = useState<GlpData[]>([])
 
@@ -39,6 +58,7 @@ export default function IoTDashboard() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
+  // Função para buscar dados da API
   const fetchData = async () => {
     try {
       setIsLoading(true)
@@ -53,6 +73,7 @@ export default function IoTDashboard() {
     }
   }
 
+  // Função para buscar parâmetros da API
   const fetchParameters = async () => {
     try {
       setIsLoading(true);
@@ -74,6 +95,9 @@ export default function IoTDashboard() {
     }
   }
 
+
+  // Handlers
+  // Light Handler
   const handleLightToggle = async (newState: boolean) => {
     if (sensorParameters.length === 0) {
       console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
@@ -92,6 +116,159 @@ export default function IoTDashboard() {
       console.log(`Erro ao atualizar luz: ${err}`);
     } finally {
       setLightLoading(false);
+    }
+
+  }
+
+  // Fan Handler
+  const handleFanToggle = async (newState: boolean) => {
+    if (sensorParameters.length === 0) {
+      console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+    }
+
+    const paramId = sensorParameters[0].id;
+    setFanLoading(true);
+    try {
+
+      await apiService.setFan(paramId, newState);
+      setFanOn(newState);
+      await fetchParameters();
+
+      console.log(`Ventilação atualizada para: ${newState}`);
+    } catch (err) {
+      console.log(`Erro ao atualizar ventilação: ${err}`);
+    } finally {
+      setFanLoading(false);
+    }
+
+  }
+
+  const handleIrrigationToggle = async (newState: boolean) => {
+    if (sensorParameters.length === 0) {
+      console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+    }
+
+    const paramId = sensorParameters[0].id;
+    setIrrigationLoading(true);
+    try {
+
+      await apiService.setIrrigation(paramId, newState);
+      setIrrigationOn(newState);
+      await fetchParameters();
+
+      console.log(`Irrigação atualizada para: ${newState}`);
+    } catch (err) {
+      console.log(`Erro ao atualizar irrigação: ${err}`);
+    } finally {
+      setIrrigationLoading(false);
+    }
+
+  }
+
+  const handleSetMaxTemperature = async () => {
+    if (sensorParameters.length === 0) {
+      console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+    }
+
+    const paramId = sensorParameters[0].id;
+    const value = parseFloat(tempThreshold);
+    if (Number.isNaN(value)) {
+      console.warn("Valor de temperatura inválido.");
+      return;
+    }
+
+    setTempLoading(true);
+    try {
+
+      await apiService.setMaxTemperature(paramId, value);
+      await fetchParameters();
+
+      console.log(`Temperatura máxima atualizada para: ${value}`);
+    } catch (err) {
+      console.log(`Erro ao atualizar temperatura máxima: ${err}`);
+    } finally {
+      setTempLoading(false);
+    }
+
+  }
+
+  const handleSetMaxHumidity = async () => {
+    if (sensorParameters.length === 0) {
+      console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+    }
+
+    const paramId = sensorParameters[0].id;
+    const value = parseFloat(humidityThreshold);
+    if (Number.isNaN(value)) {
+      console.warn("Valor de umidade inválido.");
+      return;
+    }
+
+    setHumidityLoading(true);
+    try {
+
+      await apiService.setMaxHumidity(paramId, value);
+      await fetchParameters();
+
+      console.log(`Umidade máxima atualizada para: ${value}`);
+    } catch (err) {
+      console.log(`Erro ao atualizar umidade máxima: ${err}`);
+    } finally {
+      setHumidityLoading(false);
+    }
+
+  }
+
+  const handleSetMinLight = async () => {
+    if (sensorParameters.length === 0) {
+      console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+    }
+
+    const paramId = sensorParameters[0].id;
+    const value = parseFloat(lightThreshold);
+    if (Number.isNaN(value)) {
+      console.warn("Valor de luz inválido.");
+      return;
+    }
+
+    setLightThresholdLoading(true);
+    try {
+
+      await apiService.setMinLightLevel(paramId, value);
+      await fetchParameters();
+
+      console.log(`Nível mínimo de luz atualizado para: ${value}`);
+    } catch (err) {
+      console.log(`Erro ao atualizar nível mínimo de luz: ${err}`);
+    } finally {
+      setLightThresholdLoading(false);
+    }
+
+  }
+
+  const handleSetMinSoil = async () => {
+    if (sensorParameters.length === 0) {
+      console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+    }
+
+    const paramId = sensorParameters[0].id;
+    const value = parseFloat(soilThreshold);
+    if (Number.isNaN(value)) {
+      console.warn("Valor de umidade do solo inválido.");
+      return;
+    }
+
+    setSoilLoading(true);
+    try {
+
+      await apiService.setMinSoilMoisture(paramId, value);
+      await fetchParameters();
+
+      console.log(`Umidade mínima do solo atualizada para: ${value}`);
+    } catch (err) {
+      console.log(`Erro ao atualizar umidade mínima do solo: ${err}`);
+    } finally {
+      setSoilLoading(false);
     }
 
   }
@@ -208,85 +385,165 @@ export default function IoTDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-
+            <div className="flex flex-col w-full space-y-4">
+              {/* Controls (top) */}
+              <div className="flex w-full flex-wrap gap-4 justify-center">
               {/* Light Control */}
-              <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+              <div className="flex-1 min-w-[220px] rounded-lg border border-border bg-muted/30 p-6">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Lightbulb className={`h-5 w-5 ${lightOn ? "text-chart-3" : "text-muted-foreground"}`} />
-                    <Label htmlFor="light-switch" className="text-sm font-medium text-foreground">
-                      Luz
-                    </Label>
-                  </div>
-                  <Switch 
-                    id="light-switch" 
-                    checked={lightOn} 
-                    onCheckedChange={handleLightToggle}
-                    disabled={lightLoading || sensorParameters.length === 0}
-                    />
+                <div className="flex items-center gap-2">
+                  <Lightbulb className={`h-5 w-5 ${lightOn ? "text-chart-3" : "text-muted-foreground"}`} />
+                  <Label htmlFor="light-switch" className="text-sm font-medium text-foreground">
+                  Luz
+                  </Label>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Status: {lightLoading ? "Atualizando" : (lightOn ? "ON" : "OFF")}</p>
+                <Switch
+                  id="light-switch"
+                  checked={lightOn}
+                  onCheckedChange={handleLightToggle}
+                  disabled={lightLoading || sensorParameters.length === 0}
+                />
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                Status: {lightLoading ? "Atualizando" : (lightOn ? "ON" : "OFF")}
+                </p>
               </div>
 
               {/* Fan Control */}
-              <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+              <div className="flex-1 min-w-[220px] rounded-lg border border-border bg-muted/30 p-6">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Fan className={`h-5 w-5 ${fanOn ? "text-chart-2" : "text-muted-foreground"}`} />
-                    <Label htmlFor="fan-switch" className="text-sm font-medium text-foreground">
-                      Fan
-                    </Label>
-                  </div>
-                  <Switch id="fan-switch" checked={fanOn} onCheckedChange={setFanOn} />
-                </div>
-                <p className="text-xs text-muted-foreground">Status: {fanOn ? "ON" : "OFF"}</p>
-              </div>
-
-              {/* Temperature Threshold */}
-              <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
                 <div className="flex items-center gap-2">
-                  <Thermometer className="h-5 w-5 text-chart-4" />
-                  <Label htmlFor="temp-threshold" className="text-sm font-medium text-foreground">
-                    Temperatura Limite
+                  <Fan className={`h-5 w-5 ${fanOn ? "text-chart-2" : "text-muted-foreground"}`} />
+                  <Label htmlFor="fan-switch" className="text-sm font-medium text-foreground">
+                  Fan
                   </Label>
                 </div>
+                <Switch
+                  id="fan-switch"
+                  checked={fanOn}
+                  onCheckedChange={handleFanToggle}
+                  disabled={fanLoading || sensorParameters.length === 0}
+                />
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                Status: {fanLoading ? "Atualizando" : (fanOn ? "ON" : "OFF")}
+                </p>
+              </div>
+
+              {/* Irrigation Control */}
+              <div className="flex-1 min-w-[220px] rounded-lg border border-border bg-muted/30 p-6">
+                <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Input
-                    id="temp-threshold"
-                    type="number"
-                    value={tempThreshold}
-                    onChange={(e) => setTempThreshold(e.target.value)}
-                    className="h-8 bg-background text-foreground"
-                  />
-                  <span className="text-xs text-muted-foreground">°C</span>
+                  <Droplets className={`h-5 w-5 ${sensorParameters[0]?.turn_on_irrigation ? "text-chart-1" : "text-muted-foreground"}`} />
+                  <Label htmlFor="irrigation-switch" className="text-sm font-medium text-foreground">
+                  Irrigação
+                  </Label>
+                </div>
+                <Switch
+                  id="irrigation-switch"
+                  checked={irrigationOn}
+                  onCheckedChange={handleIrrigationToggle}
+                  disabled={irrigationLoading || sensorParameters.length === 0}
+                />
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                Status: {irrigationLoading ? "Atualizando" : (irrigationOn ? "ON" : "OFF")}
+                </p>
+              </div>
+              </div>
+
+              {/* Thresholds (centered, bottom) */}
+              <div className="flex w-full flex-wrap gap-4 justify-center">
+
+              {/* Temperature Threshold */}
+              <div className="flex-1 min-w-[220px] rounded-lg border border-border bg-muted/30 p-6">
+                <div className="flex items-center gap-2">
+                <Thermometer className="h-5 w-5 text-chart-4" />
+                <Label htmlFor="temp-threshold" className="text-sm font-medium text-foreground">
+                  Temperatura Limite
+                </Label>
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                <Input
+                  id="temp-threshold"
+                  type="number"
+                  value={tempThreshold}
+                  onChange={(e) => setTempThreshold(e.target.value)}
+                  className="h-10 bg-background text-foreground"
+                />
+                <span className="text-xs text-muted-foreground">°C</span>
                 </div>
               </div>
 
               {/* Humidity Threshold */}
-              <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+              <div className="flex-1 min-w-[220px] rounded-lg border border-border bg-muted/30 p-6">
                 <div className="flex items-center gap-2">
-                  <Droplets className="h-5 w-5 text-chart-2" />
-                  <Label htmlFor="humidity-threshold" className="text-sm font-medium text-foreground">
-                    Umidade Limite
-                  </Label>
+                <Droplets className="h-5 w-5 text-chart-2" />
+                <Label htmlFor="humidity-threshold" className="text-sm font-medium text-foreground">
+                  Umidade Limite
+                </Label>
                 </div>
+                <div className="mt-3 flex items-center gap-2">
+                <Input
+                  id="humidity-threshold"
+                  type="number"
+                  value={humidityThreshold}
+                  onChange={(e) => setHumidityThreshold(e.target.value)}
+                  className="h-10 bg-background text-foreground"
+                />
+                <span className="text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+              
+              {/* Aqui */}
+              <div className="flex-1 min-w-[220px] rounded-lg border border-border bg-muted/30 p-6">
                 <div className="flex items-center gap-2">
-                  <Input
-                    id="humidity-threshold"
-                    type="number"
-                    value={humidityThreshold}
-                    onChange={(e) => setHumidityThreshold(e.target.value)}
-                    className="h-8 bg-background text-foreground"
-                  />
-                  <span className="text-xs text-muted-foreground">%</span>
+                <Droplets className="h-5 w-5 text-chart-2" />
+                <Label htmlFor="soil-threshold" className="text-sm font-medium text-foreground">
+                  Umidade Mínima do Solo
+                </Label>
                 </div>
+                <div className="mt-3 flex items-center gap-2">
+                <Input
+                  id="soil-threshold"
+                  type="number"
+                  value={soilThreshold}
+                  onChange={(e) => setSoilThreshold(e.target.value)}
+                  className="h-10 bg-background text-foreground"
+                />
+                <span className="text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+
+                <div className="flex-1 min-w-[220px] rounded-lg border border-border bg-muted/30 p-6">
+                  <div className="flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5 text-chart-3" />
+                <Label htmlFor="light-threshold" className="text-sm font-medium text-foreground">
+                  Iluminação Mínima
+                </Label>
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                <Input
+                  id="light-threshold"
+                  type="number"
+                  value={lightThreshold}
+                  onChange={(e) => setLightThreshold(e.target.value)}
+                  className="h-10 bg-background text-foreground"
+                />
+                <span className="text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
               </div>
             </div>
 
+            
+            {/* Falta alteração e deixar funcional */}
             <div className="mt-4 flex gap-3">
-              <Button className="bg-primary text-primary-foreground hover:bg-primary/90">Aplicar Alterações</Button>
+              <Button 
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={handleSetMaxHumidity || handleSetMaxTemperature || handleSetMinSoil || handleSetMinLight}
+                disabled={humidityLoading || tempLoading || soilLoading || lightLoading || sensorParameters.length === 0}
+                >Aplicar Alterações</Button>
               <Button variant="outline" className="border-border text-foreground hover:bg-muted bg-transparent">
                 Resetar para o Padrão
               </Button>
