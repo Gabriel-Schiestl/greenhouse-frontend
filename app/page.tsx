@@ -9,11 +9,11 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Activity, Lightbulb, Fan, Thermometer, Droplets } from "lucide-react"
 
-import { SensorData } from "@/format/data_format"
+import { GlpData, GlpParameters } from "@/format/format"
 import { apiService } from "@/services/service"
 
 // Mock data generators
-const transformDataForChart = (data: SensorData[], field: keyof SensorData) => {
+const transformDataForChart = (data: GlpData[], field: keyof GlpData) => {
   return data.map(item => ({
     time: new Date(item.created_at).toLocaleTimeString("en-US", {
       hour: "2-digit",
@@ -27,11 +27,15 @@ export default function IoTDashboard() {
 
   // Control states
   const [lightOn, setLightOn] = useState(false)
+  const [lightLoading, setLightLoading] = useState(false)
   const [fanOn, setFanOn] = useState(false)
   const [tempThreshold, setTempThreshold] = useState("25")
   const [humidityThreshold, setHumidityThreshold] = useState("60")
 
-  const [sensorData, setSensorData] = useState<SensorData[]>([])
+  const [sensorData, setSensorData] = useState<GlpData[]>([])
+
+  // Alterar para fazer somente ser um registro ao invés de all
+  const [sensorParameters, setSensorParameters] = useState<GlpParameters[]>([])
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -49,13 +53,57 @@ export default function IoTDashboard() {
     }
   }
 
+  const fetchParameters = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiService.getAllParameters();
+      setSensorParameters(response.data || []);
+
+      if (response.data && response.data.length > 0) {
+        const p = response.data[0];
+        setLightOn(p.turn_on_light);
+        setFanOn(p.turn_on_ventilation);
+        setTempThreshold(String(p.max_temperature));
+        setHumidityThreshold(String(p.max_humidity));
+      }
+      console.log("Parametros atualizados: ", new Date().toLocaleTimeString());
+    } catch (err) {
+      console.error("Erro ao buscar parâmetros: ", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const handleLightToggle = async (newState: boolean) => {
+    if (sensorParameters.length === 0) {
+      console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+    }
+
+    const paramId = sensorParameters[0].id;
+    setLightLoading(true);
+    try {
+
+      await apiService.setLight(paramId, newState);
+      setLightOn(newState);
+      await fetchParameters();
+
+      console.log(`Luz atualizada para: ${newState}`);
+    } catch (err) {
+      console.log(`Erro ao atualizar luz: ${err}`);
+    } finally {
+      setLightLoading(false);
+    }
+
+  }
+
   useEffect(() => {
 
-    // Busca dados imediatamente
     fetchData();
+    fetchParameters();
 
     const interval = setInterval(() => {
       fetchData();
+      fetchParameters();
     }, 60000); // 1 minuto
 
     return () => clearInterval(interval);
@@ -92,8 +140,8 @@ export default function IoTDashboard() {
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="text-foreground">Status dos Sensores</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Dados atualizados automaticamente a cada 1 minuto
+            <CardDescription className="text-muted-foreground space-y-2">
+              <div>Dados atualizados automaticamente a cada 1 minuto</div>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -142,12 +190,26 @@ export default function IoTDashboard() {
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="text-foreground">Controles</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Painel Dispositivos IoT e Limites
+            <CardDescription className="text-muted-foreground space-y-2">
+              <div>Painel Dispositivos IoT e Limites</div>
+
+              <div>
+                {
+                  sensorParameters.map(
+                    d => (
+                      <div key={d.id}>
+                        <p className="font-bold">Device: {d.sensor_id}</p>
+                        <p className="font-bold">Light: {d.turn_on_light ? "True" : "False"}</p>
+                      </div>
+                    )
+                  )
+                }
+              </div>
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+
               {/* Light Control */}
               <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
                 <div className="flex items-center justify-between">
@@ -157,9 +219,15 @@ export default function IoTDashboard() {
                       Luz
                     </Label>
                   </div>
-                  <Switch id="light-switch" checked={lightOn} onCheckedChange={setLightOn} />
+                  <Switch 
+                    id="light-switch" 
+                    checked={lightOn} 
+                    onCheckedChange={handleLightToggle}
+                    disabled={lightLoading || sensorParameters.length === 0}
+                    />
                 </div>
-                <p className="text-xs text-muted-foreground">Status: {lightOn ? "ON" : "OFF"}</p>
+                <p className="text-xs text-muted-foreground">
+                  Status: {lightLoading ? "Atualizando" : (lightOn ? "ON" : "OFF")}</p>
               </div>
 
               {/* Fan Control */}
@@ -224,9 +292,9 @@ export default function IoTDashboard() {
               </Button>
 
               <div className="ml-auto flex items-center gap-2">
-                <Button 
-                  onClick={fetchData} 
-                  size="sm" 
+                <Button
+                  onClick={fetchData}
+                  size="sm"
                   disabled={isLoading}
                 >
                   {isLoading ? "Atualizando..." : "Atualizar Agora"}
@@ -237,7 +305,7 @@ export default function IoTDashboard() {
               </div>
             </div>
 
-            
+
           </CardContent>
         </Card>
 
