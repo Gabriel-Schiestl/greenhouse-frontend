@@ -95,12 +95,17 @@ export default function IoTDashboard() {
     }
   }
 
+  const fetchAll = async () => {
+    await fetchData();
+    fetchParameters();
+  }
 
   // Handlers
   // Light Handler
   const handleLightToggle = async (newState: boolean) => {
     if (sensorParameters.length === 0) {
       console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+      return;
     }
 
     const paramId = sensorParameters[0].id;
@@ -124,6 +129,7 @@ export default function IoTDashboard() {
   const handleFanToggle = async (newState: boolean) => {
     if (sensorParameters.length === 0) {
       console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+      return;
     }
 
     const paramId = sensorParameters[0].id;
@@ -146,6 +152,7 @@ export default function IoTDashboard() {
   const handleIrrigationToggle = async (newState: boolean) => {
     if (sensorParameters.length === 0) {
       console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+      return;
     }
 
     const paramId = sensorParameters[0].id;
@@ -168,6 +175,7 @@ export default function IoTDashboard() {
   const handleSetMaxTemperature = async () => {
     if (sensorParameters.length === 0) {
       console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+      return;
     }
 
     const paramId = sensorParameters[0].id;
@@ -195,6 +203,7 @@ export default function IoTDashboard() {
   const handleSetMaxHumidity = async () => {
     if (sensorParameters.length === 0) {
       console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+      return;
     }
 
     const paramId = sensorParameters[0].id;
@@ -222,6 +231,7 @@ export default function IoTDashboard() {
   const handleSetMinLight = async () => {
     if (sensorParameters.length === 0) {
       console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+      return;
     }
 
     const paramId = sensorParameters[0].id;
@@ -249,6 +259,7 @@ export default function IoTDashboard() {
   const handleSetMinSoil = async () => {
     if (sensorParameters.length === 0) {
       console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+      return;
     }
 
     const paramId = sensorParameters[0].id;
@@ -273,6 +284,35 @@ export default function IoTDashboard() {
 
   }
 
+  const handleApplyNow = async () => {
+    setIsLoading(true);
+    try {
+      await handleApplyAll();
+      await fetchParameters();
+      await fetchData();
+    } catch (err) {
+      console.error("Erro ao aplicar alterações agora:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const handleApplyAll = async () => {
+    if (sensorParameters.length === 0) {
+      console.warn("Nenhum parâmetro de sensor disponível para atualizar.");
+      return;
+    }
+
+    await handleFanToggle(fanOn);
+    await handleLightToggle(lightOn);
+    await handleIrrigationToggle(irrigationOn);
+    
+    await handleSetMaxHumidity();
+    await handleSetMaxTemperature();
+    await handleSetMinSoil();
+    await handleSetMinLight();
+  }
+
   useEffect(() => {
 
     fetchData();
@@ -280,10 +320,10 @@ export default function IoTDashboard() {
 
     const interval = setInterval(() => {
       fetchData();
-      fetchParameters();
-    }, 60000); // 1 minuto
+    }, 60000);
 
     return () => clearInterval(interval);
+
   }, []);
 
   // Data
@@ -352,14 +392,6 @@ export default function IoTDashboard() {
                 </div>
               </div>
             )}
-            <div className="mt-4 text-center text-sm text-muted-foreground">
-              Total de registros: {sensorData.length}
-              {lastUpdate && (
-                <span className="ml-4">
-                  Próxima atualização em: <CountdownTimer />
-                </span>
-              )}
-            </div>
           </CardContent>
         </Card>
 
@@ -376,7 +408,6 @@ export default function IoTDashboard() {
                     d => (
                       <div key={d.id}>
                         <p className="font-bold">Device: {d.sensor_id}</p>
-                        <p className="font-bold">Light: {d.turn_on_light ? "True" : "False"}</p>
                       </div>
                     )
                   )
@@ -400,7 +431,7 @@ export default function IoTDashboard() {
                 <Switch
                   id="light-switch"
                   checked={lightOn}
-                  onCheckedChange={handleLightToggle}
+                  onClick={() => setLightOn(!lightOn)}
                   disabled={lightLoading || sensorParameters.length === 0}
                 />
                 </div>
@@ -421,7 +452,7 @@ export default function IoTDashboard() {
                 <Switch
                   id="fan-switch"
                   checked={fanOn}
-                  onCheckedChange={handleFanToggle}
+                  onClick={() => setFanOn(!fanOn)}
                   disabled={fanLoading || sensorParameters.length === 0}
                 />
                 </div>
@@ -442,7 +473,7 @@ export default function IoTDashboard() {
                 <Switch
                   id="irrigation-switch"
                   checked={irrigationOn}
-                  onCheckedChange={handleIrrigationToggle}
+                  onClick={() => setIrrigationOn(!irrigationOn)}
                   disabled={irrigationLoading || sensorParameters.length === 0}
                 />
                 </div>
@@ -541,8 +572,8 @@ export default function IoTDashboard() {
             <div className="mt-4 flex gap-3">
               <Button 
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={handleSetMaxHumidity || handleSetMaxTemperature || handleSetMinSoil || handleSetMinLight}
-                disabled={humidityLoading || tempLoading || soilLoading || lightLoading || sensorParameters.length === 0}
+                onClick={handleApplyAll}
+                disabled={sensorParameters.length === 0}
                 >Aplicar Alterações</Button>
               <Button variant="outline" className="border-border text-foreground hover:bg-muted bg-transparent">
                 Resetar para o Padrão
@@ -550,7 +581,7 @@ export default function IoTDashboard() {
 
               <div className="ml-auto flex items-center gap-2">
                 <Button
-                  onClick={fetchData}
+                  onClick={handleApplyNow}
                   size="sm"
                   disabled={isLoading}
                 >
@@ -607,19 +638,4 @@ export default function IoTDashboard() {
       </div>
     </div>
   )
-}
-
-// Countdown
-function CountdownTimer() {
-  const [seconds, setSeconds] = useState(60);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setSeconds(prev => prev > 0 ? prev - 1 : 60);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  return <span>{seconds}s</span>;
 }
