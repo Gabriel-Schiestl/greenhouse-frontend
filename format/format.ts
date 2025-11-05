@@ -18,7 +18,7 @@ export interface GlpParameters {
     min_light_level:     number;
     turn_on_ventilation: boolean;
     turn_on_irrigation:  boolean;
-    turn_on_light:       boolean;
+    turn_on_lighting:    boolean;
 }
 
 export interface ApiResponse<T> {

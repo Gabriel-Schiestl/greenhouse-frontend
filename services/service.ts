@@ -5,13 +5,17 @@ export class ApiService {
 
   async getAllData() {
     const response = await fetch(this.baseUrl + "/data");
-
-    // Adicionar verificador de status de requisição.
+    if (!response.ok) {
+      throw new Error(`GET /data failed: ${response.status}`);
+    }
     return response.json();
   }
 
   async getAllParameters() {
     const response = await fetch(this.baseUrl + "/parameters");
+    if (!response.ok) {
+      throw new Error(`GET /parameters failed: ${response.status}`);
+    }
     return response.json();
   }
 
@@ -33,7 +37,7 @@ export class ApiService {
 
   // Atuadores
   async setLight(id: number, lightStatus: boolean) {
-    return this.updateParameter(id, { turn_on_light: lightStatus });
+    return this.updateParameter(id, { turn_on_lighting: lightStatus });
   }
 
   async setFan(id: number, fanStatus: boolean) {
