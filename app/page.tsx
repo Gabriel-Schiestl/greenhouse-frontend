@@ -18,7 +18,6 @@ import { Activity, Lightbulb, Fan, Thermometer, Droplets } from "lucide-react";
 import { GlpData, GlpParameters } from "@/format/format";
 import { apiService } from "@/services/service";
 
-// Mock data generators
 const transformDataForChart = (data: GlpData[], field: keyof GlpData) => {
   return data
     .map((item) => ({
@@ -32,6 +31,9 @@ const transformDataForChart = (data: GlpData[], field: keyof GlpData) => {
 };
 
 export default function IoTDashboard() {
+  const [dataLoading, setDataLoading] = useState(false);
+  const [paramsLoading, setParamsLoading] = useState(false);
+
   // --- Atuadores e Limites de Controle ---
   // Light
   const [lightOn, setLightOn] = useState(false);
@@ -47,20 +49,17 @@ export default function IoTDashboard() {
 
   // --- Limites ---
   const [tempThreshold, setTempThreshold] = useState("25");
-  //const [tempLoading, setTempLoading] = useState(false)
 
   const [humidityThreshold, setHumidityThreshold] = useState("60");
-  //const [humidityLoading, setHumidityLoading] = useState(false);
 
   const [soilThreshold, setSoilThreshold] = useState("40");
-  //const [soilLoading, setSoilLoading] = useState(false);
+
 
   const [lightThreshold, setLightThreshold] = useState("200");
-  //const [lightThresholdLoading, setLightThresholdLoading] = useState(false);
+
 
   const [sensorData, setSensorData] = useState<GlpData[]>([]);
 
-  // Alterar para fazer somente ser um registro ao invés de all
   const [sensorParameters, setSensorParameters] = useState<GlpParameters[]>([]);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -68,7 +67,7 @@ export default function IoTDashboard() {
   // Função para buscar dados da API
   const fetchData = async () => {
     try {
-      setIsLoading(true);
+      setDataLoading(true);
       const response = await apiService.getAllData();
       setSensorData(response.data || []);
       setLastUpdate(new Date());
@@ -76,20 +75,21 @@ export default function IoTDashboard() {
     } catch (err) {
       console.error("Erro ao buscar dados: ", err);
     } finally {
-      setIsLoading(false);
+      setDataLoading(false);
     }
   };
 
   // Função para buscar parâmetros da API
   const fetchParameters = async () => {
     try {
-      setIsLoading(true);
+      setParamsLoading(true);
       const response = await apiService.getAllParameters();
       setSensorParameters(response.data || []);
 
       if (response.data && response.data.length > 0) {
         const p = response.data[0];
-        setLightOn(p.turn_on_light);
+        // aceitar ambos nomes (compatibilidade): turn_on_lighting ou turn_on_light
+        setLightOn((p as any).turn_on_lighting ?? (p as any).turn_on_light ?? false);
         setFanOn(p.turn_on_ventilation);
         setTempThreshold(String(p.max_temperature));
         setHumidityThreshold(String(p.max_humidity));
@@ -98,14 +98,9 @@ export default function IoTDashboard() {
     } catch (err) {
       console.error("Erro ao buscar parâmetros: ", err);
     } finally {
-      setIsLoading(false);
+      setParamsLoading(false);
     }
   };
-
-  // const fetchAll = async () => {
-  //   await fetchData();
-  //   fetchParameters();
-  // };
 
   // Handlers
   // Light Handler
@@ -120,8 +115,7 @@ export default function IoTDashboard() {
     try {
       await apiService.setLight(paramId, newState);
       setLightOn(newState);
-      await fetchParameters();
-
+    
       console.log(`Luz atualizada para: ${newState}`);
     } catch (err) {
       console.log(`Erro ao atualizar luz: ${err}`);
@@ -142,8 +136,6 @@ export default function IoTDashboard() {
     try {
       await apiService.setFan(paramId, newState);
       setFanOn(newState);
-      await fetchParameters();
-
       console.log(`Ventilação atualizada para: ${newState}`);
     } catch (err) {
       console.log(`Erro ao atualizar ventilação: ${err}`);
@@ -163,8 +155,6 @@ export default function IoTDashboard() {
     try {
       await apiService.setIrrigation(paramId, newState);
       setIrrigationOn(newState);
-      await fetchParameters();
-
       console.log(`Irrigação atualizada para: ${newState}`);
     } catch (err) {
       console.log(`Erro ao atualizar irrigação: ${err}`);
@@ -186,17 +176,9 @@ export default function IoTDashboard() {
       return;
     }
 
-    //setTempLoading(true);
-    try {
-      await apiService.setMaxTemperature(paramId, value);
-      await fetchParameters();
-
-      console.log(`Temperatura máxima atualizada para: ${value}`);
-    } catch (err) {
-      console.log(`Erro ao atualizar temperatura máxima: ${err}`);
-    } finally {
-      //setTempLoading(false);
-    }
+    await apiService.setMaxTemperature(paramId, value);
+    // não refetch aqui
+    console.log(`Temperatura máxima atualizada para: ${value}`);
   };
 
   const handleSetMaxHumidity = async () => {
@@ -212,17 +194,8 @@ export default function IoTDashboard() {
       return;
     }
 
-    //setHumidityLoading(true);
-    try {
-      await apiService.setMaxHumidity(paramId, value);
-      await fetchParameters();
-
-      console.log(`Umidade máxima atualizada para: ${value}`);
-    } catch (err) {
-      console.log(`Erro ao atualizar umidade máxima: ${err}`);
-    } finally {
-      //setHumidityLoading(false);
-    }
+    await apiService.setMaxHumidity(paramId, value);
+    console.log(`Umidade máxima atualizada para: ${value}`);
   };
 
   const handleSetMinLight = async () => {
@@ -238,17 +211,8 @@ export default function IoTDashboard() {
       return;
     }
 
-    //setLightThresholdLoading(true);
-    try {
-      await apiService.setMinLightLevel(paramId, value);
-      await fetchParameters();
-
-      console.log(`Nível mínimo de luz atualizado para: ${value}`);
-    } catch (err) {
-      console.log(`Erro ao atualizar nível mínimo de luz: ${err}`);
-    } finally {
-      //setLightThresholdLoading(false);
-    }
+    await apiService.setMinLightLevel(paramId, value);
+    console.log(`Nível mínimo de luz atualizado para: ${value}`);
   };
 
   const handleSetMinSoil = async () => {
@@ -264,24 +228,16 @@ export default function IoTDashboard() {
       return;
     }
 
-    //setSoilLoading(true);
-    try {
-      await apiService.setMinSoilMoisture(paramId, value);
-      await fetchParameters();
-
-      console.log(`Umidade mínima do solo atualizada para: ${value}`);
-    } catch (err) {
-      console.log(`Erro ao atualizar umidade mínima do solo: ${err}`);
-    } finally {
-      //setSoilLoading(false);
-    }
+    await apiService.setMinSoilMoisture(paramId, value);
+    console.log(`Umidade mínima do solo atualizada para: ${value}`);
   };
 
   const handleApplyNow = async () => {
-    setIsLoading(true);
+    setIsLoading(true); // usar isLoading existente para bloquear botão
     try {
+    
       await handleApplyAll();
-      await fetchParameters();
+      await fetchParameters(); // somente uma vez ao final
       await fetchData();
     } catch (err) {
       console.error("Erro ao aplicar alterações agora:", err);
@@ -296,6 +252,7 @@ export default function IoTDashboard() {
       return;
     }
 
+  
     await handleFanToggle(fanOn);
     await handleLightToggle(lightOn);
     await handleIrrigationToggle(irrigationOn);
@@ -307,9 +264,10 @@ export default function IoTDashboard() {
   };
 
   useEffect(() => {
-    fetchData();
+  
     fetchParameters();
-
+  
+    fetchData();
     const interval = setInterval(() => {
       fetchData();
     }, 60000);
@@ -357,7 +315,9 @@ export default function IoTDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {sensorData.length === 0 ? (
+            {dataLoading ? (
+              <p className="text-sm text-muted-foreground">Carregando dados...</p>
+            ) : sensorData.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Nenhum dado disponível
               </p>
@@ -382,7 +342,7 @@ export default function IoTDashboard() {
                 <div className="text-center">
                   <div className="text-2xl font-bold text-chart-3">
                     {currentData
-                      ? `${currentData.light_level.toFixed(0)} lux`
+                      ? `${currentData.light_level.toFixed(0)} %`
                       : "--"}
                   </div>
                   <div className="text-sm text-muted-foreground">Luz</div>
@@ -417,6 +377,11 @@ export default function IoTDashboard() {
                 ))}
               </div>
             </CardDescription>
+            {paramsLoading && (
+              <div className="text-ts text-muted-foreground ml-2">
+                Carregando parâmetros...
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <div className="flex flex-col w-full space-y-4">
@@ -442,7 +407,7 @@ export default function IoTDashboard() {
                       id="light-switch"
                       checked={lightOn}
                       onClick={() => setLightOn(!lightOn)}
-                      disabled={lightLoading || sensorParameters.length === 0}
+                      disabled={lightLoading || paramsLoading || sensorParameters.length === 0}
                     />
                   </div>
                   <p className="mt-3 text-xs text-muted-foreground">
@@ -471,7 +436,7 @@ export default function IoTDashboard() {
                       id="fan-switch"
                       checked={fanOn}
                       onClick={() => setFanOn(!fanOn)}
-                      disabled={fanLoading || sensorParameters.length === 0}
+                      disabled={fanLoading || paramsLoading || sensorParameters.length === 0}
                     />
                   </div>
                   <p className="mt-3 text-xs text-muted-foreground">
@@ -502,7 +467,7 @@ export default function IoTDashboard() {
                       checked={irrigationOn}
                       onClick={() => setIrrigationOn(!irrigationOn)}
                       disabled={
-                        irrigationLoading || sensorParameters.length === 0
+                        irrigationLoading || paramsLoading || sensorParameters.length === 0
                       }
                     />
                   </div>
@@ -617,16 +582,18 @@ export default function IoTDashboard() {
               <Button
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={handleApplyAll}
-                disabled={sensorParameters.length === 0}
+                disabled={sensorParameters.length === 0 || paramsLoading}
               >
                 Aplicar Alterações
               </Button>
-              <Button
+
+              {/* Botão de Resetar padrão não utilizado */}
+              {/* <Button
                 variant="outline"
                 className="border-border text-foreground hover:bg-muted bg-transparent"
               >
                 Resetar para o Padrão
-              </Button>
+              </Button> */}
 
               <div className="ml-auto flex items-center gap-2">
                 <Button onClick={handleApplyNow} size="sm" disabled={isLoading}>
