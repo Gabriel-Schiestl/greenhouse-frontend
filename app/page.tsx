@@ -54,9 +54,7 @@ export default function IoTDashboard() {
 
   const [soilThreshold, setSoilThreshold] = useState("40");
 
-
   const [lightThreshold, setLightThreshold] = useState("200");
-
 
   const [sensorData, setSensorData] = useState<GlpData[]>([]);
 
@@ -89,7 +87,7 @@ export default function IoTDashboard() {
       if (response.data && response.data.length > 0) {
         const p = response.data[0];
         // aceitar ambos nomes (compatibilidade): turn_on_lighting ou turn_on_light
-        setLightOn((p as any).turn_on_lighting ?? (p as any).turn_on_light ?? false);
+        setLightOn(p.turn_on_lighting ?? p.turn_on_light ?? false);
         setFanOn(p.turn_on_ventilation);
         setTempThreshold(String(p.max_temperature));
         setHumidityThreshold(String(p.max_humidity));
@@ -115,7 +113,7 @@ export default function IoTDashboard() {
     try {
       await apiService.setLight(paramId, newState);
       setLightOn(newState);
-    
+
       console.log(`Luz atualizada para: ${newState}`);
     } catch (err) {
       console.log(`Erro ao atualizar luz: ${err}`);
@@ -235,7 +233,6 @@ export default function IoTDashboard() {
   const handleApplyNow = async () => {
     setIsLoading(true); // usar isLoading existente para bloquear botão
     try {
-    
       await handleApplyAll();
       await fetchParameters(); // somente uma vez ao final
       await fetchData();
@@ -252,7 +249,6 @@ export default function IoTDashboard() {
       return;
     }
 
-  
     await handleFanToggle(fanOn);
     await handleLightToggle(lightOn);
     await handleIrrigationToggle(irrigationOn);
@@ -264,9 +260,8 @@ export default function IoTDashboard() {
   };
 
   useEffect(() => {
-  
     fetchParameters();
-  
+
     fetchData();
     const interval = setInterval(() => {
       fetchData();
@@ -316,7 +311,9 @@ export default function IoTDashboard() {
           </CardHeader>
           <CardContent>
             {dataLoading ? (
-              <p className="text-sm text-muted-foreground">Carregando dados...</p>
+              <p className="text-sm text-muted-foreground">
+                Carregando dados...
+              </p>
             ) : sensorData.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Nenhum dado disponível
@@ -407,7 +404,11 @@ export default function IoTDashboard() {
                       id="light-switch"
                       checked={lightOn}
                       onClick={() => setLightOn(!lightOn)}
-                      disabled={lightLoading || paramsLoading || sensorParameters.length === 0}
+                      disabled={
+                        lightLoading ||
+                        paramsLoading ||
+                        sensorParameters.length === 0
+                      }
                     />
                   </div>
                   <p className="mt-3 text-xs text-muted-foreground">
@@ -436,7 +437,11 @@ export default function IoTDashboard() {
                       id="fan-switch"
                       checked={fanOn}
                       onClick={() => setFanOn(!fanOn)}
-                      disabled={fanLoading || paramsLoading || sensorParameters.length === 0}
+                      disabled={
+                        fanLoading ||
+                        paramsLoading ||
+                        sensorParameters.length === 0
+                      }
                     />
                   </div>
                   <p className="mt-3 text-xs text-muted-foreground">
@@ -467,7 +472,9 @@ export default function IoTDashboard() {
                       checked={irrigationOn}
                       onClick={() => setIrrigationOn(!irrigationOn)}
                       disabled={
-                        irrigationLoading || paramsLoading || sensorParameters.length === 0
+                        irrigationLoading ||
+                        paramsLoading ||
+                        sensorParameters.length === 0
                       }
                     />
                   </div>
