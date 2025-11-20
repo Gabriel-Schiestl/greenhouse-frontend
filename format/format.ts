@@ -19,6 +19,7 @@ export interface GlpParameters {
     turn_on_ventilation: boolean;
     turn_on_irrigation:  boolean;
     turn_on_lighting:    boolean;
+    last_user_update:    string;
 }
 
 export interface ApiResponse<T> {
